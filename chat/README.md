@@ -1,83 +1,137 @@
-# chat
+# Connect Chat
 
-A Flutter chat application using Firebase Authentication and Cloud Firestore.
+A modern, real-time 1-on-1 chat application built with **Flutter**, **Firebase Authentication**, **Cloud Firestore**, and **Cloud Functions**. Features full compliance with App Store and Google Play safety guidelines, including user blocking, content reporting, and self-service account deletion.
 
-## Chat service
+---
 
-`lib/services/chat/chat_service.dart` provides:
+## Features
 
-- `getUserStream()` — live public profiles; the home page hides yourself and blocked users.
-- `sendMessage(receiverId, message)` — sends a validated text message.
-- `getMessages(receiverId)` — the latest 50 messages, newest first.
+### 🔐 Authentication & Session
+- **Email & Password Authentication:** Sign up and log in powered by Firebase Auth.
+- **Reactive Routing (`AuthGate`):** Listens to auth state changes to seamlessly transition between the auth flow and home page.
+- **Automated Directory Profiles:** Registers user profiles to Firestore (`Users/{uid}`) upon sign-up or sign-in.
+- **Error Handling:** Mapped error feedback for common issues (e.g. invalid credentials, disabled accounts, weak passwords).
 
-Message queries accept a `limit` between 1 and 100. Messages are trimmed and
-limited to 4,000 Dart string code units. Use a reversed list to display messages.
+### 💬 Real-Time Messaging
+- **Instant 1-on-1 Chat:** Firestore real-time snapshots with server-side timestamps.
+- **Canonical Chat Rooms:** Deterministic room ID generation based on base64-encoded participant IDs (`chat_rooms/{roomId}`).
+- **Interactive Chat UI:**
+  - Auto-scroll to the bottom on load and upon keyboard activation.
+  - Styled message bubbles (`ChatBubble`) distinguishing outgoing vs. incoming messages.
+  - Real-time text validation with a 4,000-character limit.
 
-Profiles are stored at `Users/{uid}` with `uid`, `email`, and `displayName`.
-Sign-in and registration save these public profiles. Existing accounts should
-sign in again to appear in the directory. Never store passwords here.
+### 🛡️ Safety & Moderation (Store-Compliant)
+- **Block & Unblock Users:**
+  - Block or unblock directly from the chat menu or via **Settings → Blocked users**.
+  - Bidirectional communication block enforced at the Firestore security rules level.
+  - Blocked users are automatically hidden from the active user directory on the Home screen.
+- **Content & User Reporting:**
+  - Report a user from the chat options menu or **Settings → Report a user**.
+  - Long-press any received message bubble to submit a report directly referencing that specific message.
+  - Structured categorization (*Spam or scam*, *Harassment*, *Inappropriate content*, *Other*) with optional details.
+- **Self-Service Account Deletion:**
+  - Accessible via **Settings → Delete account**.
+  - Requires password confirmation before permanently purging user data and sent messages via Cloud Functions.
 
-Messages live at `chat_rooms/{roomId}/messages/{messageId}`. Both participants
-must have a saved profile. The service uses authenticated sender details and
-server timestamps. Handle Firebase errors in the calling screen.
+### 🎨 Themes & Customization
+- **Dark Mode & Light Mode:** Managed centrally via `ThemeProvider` (`ChangeNotifierProvider`).
+- **iOS-Style Toggle:** Smooth `CupertinoSwitch` control in the Settings screen.
 
-```dart
-final chat = ChatService();
-await chat.sendMessage(receiverId, 'Hello!');
-final messages = chat.getMessages(receiverId);
+---
+
+## Project Structure
+
+```text
+lib/
+├── components/                 # Reusable UI widgets
+│   ├── chat_bubble.dart        # Incoming & outgoing message bubbles
+│   ├── delete_account_dialog.dart # Password confirmation deletion dialog
+│   ├── my_button.dart          # Primary action button
+│   ├── my_drawer.dart          # Navigation drawer (Home, Settings, Logout)
+│   ├── my_textfield.dart       # Form and composer text fields
+│   ├── report_dialog.dart      # Report reason and description dialog
+│   └── user_tile.dart          # Directory list tile for contacts
+├── pages/                      # Application screens
+│   ├── blocked_users_page.dart # Manage and unblock blocked contacts
+│   ├── chat_page.dart          # Real-time messaging conversation view
+│   ├── home_page.dart          # Active user list and chat directory
+│   ├── login_page.dart         # Sign-in screen
+│   ├── register_page.dart      # Account creation screen
+│   ├── report_user_page.dart   # Directory of users available to report
+│   └── settings_page.dart      # Theme toggle and account settings
+├── services/                   # Business logic and external APIs
+│   ├── auth/
+│   │   ├── auth_gate.dart      # Authentication state router
+│   │   ├── auth_service.dart   # Firebase Auth and profile management
+│   │   └── login_or_register.dart # Screen switcher for auth
+│   └── chat/
+│       └── chat_service.dart   # Messaging, blocking, and reporting logic
+├── theme/                      # Styling and color palettes
+│   ├── dark_mode.dart          # Dark color scheme
+│   ├── light_mode.dart         # Light color scheme
+│   └── theme_provider.dart     # State manager for theme switching
+├── firebase_options.dart       # Generated FlutterFire configuration
+└── main.dart                   # Application entry point
 ```
 
-## Setup
+---
 
-Enable Email/Password authentication and create a Firestore database in your
-Firebase project. The included rules restrict messages to participants and
-profile writes to their owner. Deploy them when ready:
+## Getting Started
 
-```sh
+### Prerequisites
+- [Flutter SDK](https://docs.flutter.dev/get-started/install) (3.24+ recommended)
+- [Firebase CLI](https://firebase.google.com/docs/cli) (`npm install -g firebase-tools` or `brew install firebase-cli`)
+- A Firebase project with **Authentication** (Email/Password) and **Cloud Firestore** enabled.
+
+### Installation & Run
+
+1. **Clone the repository and install dependencies:**
+   ```bash
+   git clone <repo-url>
+   cd chat
+   flutter pub get
+   ```
+
+2. **Configure Firebase (if setting up your own project):**
+   ```bash
+   flutterfire configure
+   ```
+
+3. **Run the application:**
+   ```bash
+   flutter run
+   ```
+
+---
+
+## Firebase & Backend Setup
+
+### Firestore Security Rules
+Deploy the included security rules to enforce participant privacy, room validation, and blocking restrictions:
+```bash
 firebase deploy --only firestore:rules --project YOUR_PROJECT_ID
 ```
 
-After adding a native Firebase plugin, stop the app and run `flutter run` again.
-
-## Account settings
-
-- Use a chat's menu to block, unblock, or report its participant. Long-press a
-  received message to report that message.
-- Settings → Blocked users lists blocked accounts and allows unblocking.
-- Settings → Report a user allows selecting an account, including blocked users.
-- Blocking stops new messages in both directions through Firestore rules.
-  Existing history remains readable. Block lists are private to their owner.
-- Reports are stored in `reports` with a reason, optional details, and optional
-  message reference. Only Admin access can review them, for example through the
-  Firebase Console. Submitting a report does not automatically block the user.
-- Settings → Delete account requires the current password. The server removes
-  the Firebase Auth account, profile, block lists, related reports, and all sent
-  messages. Other participants' messages and accounts are preserved.
-
-The `deleteAccount` callable function derives the account ID from verified
-authentication and requires a sign-in within the last five minutes. An Admin-only
-deletion marker prevents new writes during cleanup and after deletion. If a
-cleanup attempt is interrupted, retry account deletion to finish it.
-
-Cloud Functions deployment requires a billing-enabled Firebase project. Install
-the backend dependencies and deploy the function, rules, and cleanup index:
-
-```sh
+### Account Deletion Cloud Function
+The account deletion feature relies on a callable Cloud Function running on Node.js 22 in `us-central1` to safely scrub data:
+```bash
 npm --prefix functions ci
 firebase deploy --only firestore,functions:account --project YOUR_PROJECT_ID
 ```
 
-The function runs in `us-central1` on Node.js 22. The app uses the same region.
+---
 
-## Checks
+## Quality Checks & Testing
 
-```sh
+Run analyzer and unit/widget test suites:
+
+```bash
+# Static analysis
 flutter analyze
+
+# Unit & Widget tests (14 test suites)
 flutter test
+
+# Firestore security rules integration tests (requires local emulator)
 firebase emulators:exec --only firestore,auth,functions --project demo-chat-service "python3 test/firestore_rules_test.py"
 ```
-
-The emulator tests use a demo project and disposable accounts. They cover private
-reports, bidirectional blocking, recent authentication, and deleting 251 sent
-messages across multiple batches without deleting another account's data.
-Firebase CLI 15 needs Java 21 or newer.
