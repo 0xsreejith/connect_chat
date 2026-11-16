@@ -1,0 +1,67 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function validParticipants(roomId, data) {
+      return data.keys().hasOnly(['participantIds'])
+        && data.participantIds is list
+        && data.participantIds.size() == 2
+        && data.participantIds[0] is string
+        && data.participantIds[1] is string
+        && data.participantIds[0] != data.participantIds[1]
+        && roomId == data.participantIds[0].toUtf8().toBase64().replace('=', '')
+          + '.' + data.participantIds[1].toUtf8().toBase64().replace('=', '')
+        && request.auth.uid in data.participantIds
+        && exists(/databases/$(database)/documents/Users/$(data.participantIds[0]))
+        && exists(/databases/$(database)/documents/Users/$(data.participantIds[1]));
+    }
+
+    match /Users/{userId} {
+      allow read: if signedIn();
+      allow create, update: if signedIn()
+        && request.auth.uid == userId
+        && request.resource.data.keys().hasOnly(['uid', 'email', 'displayName'])
+        && request.resource.data.uid == userId
+        && request.resource.data.email == request.auth.token.email
+        && (request.resource.data.displayName == null
+          || request.resource.data.displayName is string);
+    }
+
+    match /chat_rooms/{roomId} {
+      allow read: if signedIn()
+        && request.auth.uid in resource.data.participantIds;
+      allow create: if signedIn() && validParticipants(roomId, request.resource.data);
+      allow update: if signedIn()
+        && validParticipants(roomId, request.resource.data)
+        && request.resource.data.participantIds == resource.data.participantIds;
+
+      match /messages/{messageId} {
+        function room() {
+          return get(/databases/$(database)/documents/chat_rooms/$(roomId)).data;
+        }
+
+        function roomAfterWrite() {
+          return getAfter(/databases/$(database)/documents/chat_rooms/$(roomId)).data;
+        }
+
+        allow read: if signedIn() && request.auth.uid in room().participantIds;
+        allow create: if signedIn()
+          && request.auth.uid in roomAfterWrite().participantIds
+          && request.resource.data.keys().hasOnly([
+            'senderID', 'senderEmail', 'receiverID', 'message', 'timestamp'
+          ])
+          && request.resource.data.senderID == request.auth.uid
+          && request.resource.data.senderEmail == request.auth.token.email
+          && request.resource.data.receiverID in roomAfterWrite().participantIds
+          && request.resource.data.receiverID != request.auth.uid
+          && request.resource.data.message is string
+          && request.resource.data.message.trim().size() > 0
+          && request.resource.data.message.size() <= 4000
+          && request.resource.data.timestamp == request.time;
+      }
+    }
+  }
+}

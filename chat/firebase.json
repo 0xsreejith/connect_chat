@@ -1,1 +1,33 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"connect-message-27117","appId":"1:583718404137:android:f912b6570d19f3bf561c38","fileOutput":"android/app/google-services.json"}},"ios":{"default":{"projectId":"connect-message-27117","appId":"1:583718404137:ios:d68a65a534501178561c38","uploadDebugSymbols":false,"fileOutput":"ios/Runner/GoogleService-Info.plist"}},"dart":{"lib/firebase_options.dart":{"projectId":"connect-message-27117","configurations":{"android":"1:583718404137:android:f912b6570d19f3bf561c38","ios":"1:583718404137:ios:d68a65a534501178561c38"}}}}}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "connect-message-27117",
+          "appId": "1:583718404137:android:f912b6570d19f3bf561c38",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "ios": {
+        "default": {
+          "projectId": "connect-message-27117",
+          "appId": "1:583718404137:ios:d68a65a534501178561c38",
+          "uploadDebugSymbols": false,
+          "fileOutput": "ios/Runner/GoogleService-Info.plist"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "connect-message-27117",
+          "configurations": {
+            "android": "1:583718404137:android:f912b6570d19f3bf561c38",
+            "ios": "1:583718404137:ios:d68a65a534501178561c38"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules"
+  }
+}

@@ -1,4 +1,4 @@
-import 'package:chat/auth/login_or_register.dart';
+import 'package:chat/services/auth/login_or_register.dart';
 import 'package:chat/pages/home_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:material_ui/material_ui.dart';
@@ -21,7 +21,7 @@ class AuthGate extends StatelessWidget {
 
         if (snapshot.hasData) {
           // user is logged in 
-          return const HomePage();
+          return HomePage();
         } else {
           // user NOT logged in 
           return const LoginOrRegister();
