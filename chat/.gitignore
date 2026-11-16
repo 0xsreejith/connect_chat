@@ -46,3 +46,35 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+# Environment and Secret Files
+.env
+.env.*
+!.env.example
+*.env
+secrets.json
+credentials.json
+*service-account*.json
+*.pem
+*.key
+
+# Firebase Configuration & Sensitive Files
+**/google-services.json
+**/GoogleService-Info.plist
+lib/firebase_options.dart
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+
+# Android Signing & Keys
+key.properties
+**/local.properties
+**/*.keystore
+**/*.jks
+
+# iOS & macOS Certificates / Provisioning
+*.p8
+*.p12
+*.cer
+*.mobileprovision
+*.provisionprofile

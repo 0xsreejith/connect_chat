@@ -1,6 +1,8 @@
+import 'package:chat/auth/auth_service.dart';
 import 'package:chat/components/my_button.dart';
 import 'package:chat/components/my_textfield.dart';
 import 'package:chat/pages/register_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:material_ui/material_ui.dart';
 
 class LoginPage extends StatelessWidget {
@@ -16,20 +18,41 @@ class LoginPage extends StatelessWidget {
   final TextEditingController _passwordController = TextEditingController();
 
   // Login method
-  void login(BuildContext context) {
+  void login(BuildContext context) async {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
 
     if (email.isEmpty || password.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please fill in both email and password"),
+      showDialog(
+        context: context,
+        builder: (context) => const AlertDialog(
+          title: Text("Please fill in both email and password"),
         ),
       );
       return;
     }
 
-    // TODO: Connect with your AuthService
+    final authService = AuthService();
+
+    try {
+      await authService.signInWithEmailPassword(email, password);
+    } on FirebaseAuthException catch (e) {
+      if (!context.mounted) return;
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(AuthService.getErrorMessage(e)),
+        ),
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(e.toString()),
+        ),
+      );
+    }
   }
 
   @override
