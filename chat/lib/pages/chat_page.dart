@@ -24,15 +24,54 @@ class _ChatPageState extends State<ChatPage> {
   final TextEditingController _messageController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
 
+  // Scroll controller
+  final ScrollController _scrollController = ScrollController();
+
   // Chat & auth services
   final ChatService _chatService = ChatService();
   final AuthService _authService = AuthService();
 
   @override
+  void initState() {
+    super.initState();
+
+    // Add listener to focus node for keyboard adjustment
+    _focusNode.addListener(() {
+      if (_focusNode.hasFocus) {
+        // Cause a delay so that the keyboard has time to show up
+        // then the amount of remaining space will be calculated,
+        // then scroll down
+        Future.delayed(
+          const Duration(milliseconds: 500),
+          () => scrollDown(),
+        );
+      }
+    });
+
+    // Wait a bit for listview to be built, then scroll to bottom
+    Future.delayed(
+      const Duration(milliseconds: 500),
+      () => scrollDown(),
+    );
+  }
+
+  @override
   void dispose() {
-    _messageController.dispose();
     _focusNode.dispose();
+    _messageController.dispose();
+    _scrollController.dispose();
     super.dispose();
+  }
+
+  // Scroll to bottom of chat
+  void scrollDown() {
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(seconds: 1),
+        curve: Curves.fastOutSlowIn,
+      );
+    }
   }
 
   // Send message
@@ -51,6 +90,8 @@ class _ChatPageState extends State<ChatPage> {
         SnackBar(content: Text('Failed to send message: $e')),
       );
     }
+
+    scrollDown();
   }
 
   @override
@@ -102,12 +143,14 @@ class _ChatPageState extends State<ChatPage> {
           );
         }
 
-        // Display newest messages at bottom using reverse: true
+        // Reverse so oldest messages are at the top, newest at the bottom
+        final messages = docs.reversed.toList();
+
         return ListView.builder(
-          reverse: true,
-          itemCount: docs.length,
+          controller: _scrollController,
+          itemCount: messages.length,
           itemBuilder: (context, index) {
-            return _buildMessageItem(docs[index]);
+            return _buildMessageItem(messages[index]);
           },
         );
       },
