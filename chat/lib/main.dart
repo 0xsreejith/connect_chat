@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'ConnectChate',
+      title: 'Connect Chat',
       debugShowCheckedModeBanner: false,
       home: const AuthGate(),
       theme: Provider.of<ThemeProvider>(context).themeData,
