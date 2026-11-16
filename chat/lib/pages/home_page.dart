@@ -3,14 +3,27 @@ import 'package:chat/components/user_tile.dart';
 import 'package:chat/pages/chat_page.dart';
 import 'package:chat/services/auth/auth_service.dart';
 import 'package:chat/services/chat/chat_service.dart';
+import 'package:chat/services/notifications/notification_service.dart';
 import 'package:material_ui/material_ui.dart';
 
-class HomePage extends StatelessWidget {
-  HomePage({super.key});
+class HomePage extends StatefulWidget {
+  const HomePage({super.key});
 
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
   // Chat & Auth services
   final ChatService _chatService = ChatService();
   final AuthService _authService = AuthService();
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize push notifications when user lands on home page
+    NotificationService().initNotifications();
+  }
 
   @override
   Widget build(BuildContext context) {

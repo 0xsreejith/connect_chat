@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 
 class AuthService {
   AuthService({
@@ -58,12 +59,33 @@ class AuthService {
       EmailAuthProvider.credential(email: email, password: password),
     );
     await user.getIdToken(true);
-    await (functions ?? FirebaseFunctions.instance)
-        .httpsCallable(
-          'deleteAccount',
-          options: HttpsCallableOptions(timeout: const Duration(minutes: 9)),
-        )
-        .call();
+
+    try {
+      await (functions ?? FirebaseFunctions.instance)
+          .httpsCallable(
+            'deleteAccount',
+            options: HttpsCallableOptions(timeout: const Duration(minutes: 9)),
+          )
+          .call();
+    } on FirebaseFunctionsException catch (e) {
+      if (e.code == 'not-found') {
+        // Fallback for Spark plan: Cloud Function is not deployed
+        try {
+          await _firestore.collection('Users').doc(user.uid).delete();
+        } catch (err) {
+          debugPrint('Error deleting user profile: $err');
+        }
+        await user.delete();
+      } else {
+        rethrow;
+      }
+    } catch (_) {
+      // General fallback if functions plugin fails completely
+      try {
+        await _firestore.collection('Users').doc(user.uid).delete();
+      } catch (_) {}
+      await user.delete();
+    }
     await _auth.signOut();
   }
 

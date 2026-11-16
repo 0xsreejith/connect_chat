@@ -1,7 +1,9 @@
 const {initializeApp} = require('firebase-admin/app');
 const {getAuth} = require('firebase-admin/auth');
 const {FieldValue, getFirestore} = require('firebase-admin/firestore');
+const {getMessaging} = require('firebase-admin/messaging');
 const {onCall, HttpsError} = require('firebase-functions/v2/https');
+const {onDocumentCreated} = require('firebase-functions/v2/firestore');
 
 initializeApp();
 
@@ -45,3 +47,54 @@ exports.deleteAccount = onCall({region: 'us-central1', timeoutSeconds: 540, maxI
   }
   return {deleted: true};
 });
+
+exports.sendMessageNotification = onDocumentCreated(
+  {
+    region: 'us-central1',
+    document: 'chat_rooms/{roomId}/messages/{messageId}',
+  },
+  async (event) => {
+    const data = event.data?.data();
+    if (!data) return;
+
+    const {senderID, senderEmail, receiverID, message: text} = data;
+    if (!senderID || !receiverID || !text) return;
+
+    const db = getFirestore();
+
+    // Check if receiver blocked the sender
+    const isBlocked = (
+      await db
+        .collection('Users')
+        .doc(receiverID)
+        .collection('blocked_users')
+        .doc(senderID)
+        .get()
+    ).exists;
+
+    if (isBlocked) return;
+
+    // Fetch receiver's FCM token
+    const receiverDoc = await db.collection('Users').doc(receiverID).get();
+    const fcmToken = receiverDoc.data()?.fcmToken;
+    if (!fcmToken) return;
+
+    // Dispatch push notification
+    try {
+      await getMessaging().send({
+        token: fcmToken,
+        notification: {
+          title: senderEmail || 'New message',
+          body: text.length > 100 ? `${text.substring(0, 100)}...` : text,
+        },
+        data: {
+          senderID: senderID,
+          senderEmail: senderEmail || '',
+          roomId: event.params.roomId,
+        },
+      });
+    } catch (error) {
+      console.error('Failed to send FCM notification:', error);
+    }
+  }
+);

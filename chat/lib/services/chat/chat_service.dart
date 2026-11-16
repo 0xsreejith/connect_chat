@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:chat/services/notifications/notification_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -11,14 +12,21 @@ class ChatService {
     'Other',
   ];
 
-  ChatService({FirebaseFirestore? firestore, FirebaseAuth? auth})
-    : _firestore = firestore ?? FirebaseFirestore.instance,
-      _customAuth = auth;
+  ChatService({
+    FirebaseFirestore? firestore,
+    FirebaseAuth? auth,
+    NotificationService? notificationService,
+  })  : _firestore = firestore ?? FirebaseFirestore.instance,
+        _customAuth = auth,
+        _customNotificationService = notificationService;
 
   final FirebaseFirestore _firestore;
   final FirebaseAuth? _customAuth;
+  final NotificationService? _customNotificationService;
 
   FirebaseAuth get _effectiveAuth => _customAuth ?? FirebaseAuth.instance;
+  NotificationService get _effectiveNotificationService =>
+      _customNotificationService ?? NotificationService();
 
   /// Live public profiles ordered by email.
   Stream<List<Map<String, dynamic>>> getUserStream() {
@@ -141,6 +149,29 @@ class ChatService {
     });
 
     await batch.commit();
+
+    // Send push notification directly to receiver for $0
+    try {
+      final receiverDoc =
+          await _firestore.collection('Users').doc(receiverId).get();
+      final receiverToken = receiverDoc.data()?['fcmToken'];
+      if (receiverToken != null &&
+          receiverToken is String &&
+          receiverToken.isNotEmpty) {
+        _effectiveNotificationService.sendPushNotification(
+          receiverToken: receiverToken,
+          title: currentUserEmail,
+          body: trimmed,
+          data: {
+            'senderID': currentUser.uid,
+            'senderEmail': currentUserEmail,
+            'roomId': roomId,
+          },
+        );
+      }
+    } catch (_) {
+      // Notification failure should never affect message sending
+    }
   }
 
   /// Streams the latest messages with [receiverId], newest first.

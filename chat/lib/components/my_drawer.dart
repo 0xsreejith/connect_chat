@@ -1,13 +1,15 @@
 import 'package:chat/services/auth/auth_service.dart';
 import 'package:chat/pages/settings_page.dart';
+import 'package:chat/services/notifications/notification_service.dart';
 import 'package:material_ui/material_ui.dart';
 
 class MyDrawer extends StatelessWidget {
   const MyDrawer({super.key});
 
-  void logout() {
+  void logout() async {
+    await NotificationService().clearToken();
     final auth = AuthService();
-    auth.signOut();
+    await auth.signOut();
   }
 
   @override
