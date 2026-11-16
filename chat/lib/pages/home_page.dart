@@ -30,43 +30,53 @@ class HomePage extends StatelessWidget {
   // Build a list of users except for the current logged-in user
   Widget _buildUserList() {
     return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: _chatService.getUserStream(),
-      builder: (context, snapshot) {
-        // Error
-        if (snapshot.hasError) {
-          return const Center(
-            child: Text("Error loading users"),
-          );
+      stream: _chatService.getBlockedUsers(),
+      builder: (context, blockedSnapshot) {
+        if (blockedSnapshot.hasError) {
+          return const Center(child: Text('Unable to load blocked users.'));
         }
-
-        // Loading
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(),
-          );
+        if (!blockedSnapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
         }
+        final blockedIds = blockedSnapshot.data!
+            .map((user) => user['userId'])
+            .toSet();
+        return StreamBuilder<List<Map<String, dynamic>>>(
+          stream: _chatService.getUserStream(),
+          builder: (context, snapshot) {
+            // Error
+            if (snapshot.hasError) {
+              return const Center(child: Text("Error loading users"));
+            }
 
-        final currentUserId = _authService.getCurrentUser()?.uid;
-        final currentUserEmail = _authService.getCurrentUser()?.email;
+            // Loading
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-        // Filter out current logged in user
-        final otherUsers = (snapshot.data ?? []).where((user) {
-          final uid = user['uid'];
-          final email = user['email'];
-          return uid != currentUserId && email != currentUserEmail;
-        }).toList();
+            final currentUserId = _authService.getCurrentUser()?.uid;
+            final currentUserEmail = _authService.getCurrentUser()?.email;
 
-        if (otherUsers.isEmpty) {
-          return const Center(
-            child: Text("No other users found"),
-          );
-        }
+            // Filter out current logged in user
+            final otherUsers = (snapshot.data ?? []).where((user) {
+              final uid = user['uid'];
+              final email = user['email'];
+              return uid != currentUserId &&
+                  email != currentUserEmail &&
+                  !blockedIds.contains(uid);
+            }).toList();
 
-        // Return user list
-        return ListView.builder(
-          itemCount: otherUsers.length,
-          itemBuilder: (context, index) {
-            return _buildUserListItem(otherUsers[index], context);
+            if (otherUsers.isEmpty) {
+              return const Center(child: Text("No other users found"));
+            }
+
+            // Return user list
+            return ListView.builder(
+              itemCount: otherUsers.length,
+              itemBuilder: (context, index) {
+                return _buildUserListItem(otherUsers[index], context);
+              },
+            );
           },
         );
       },
