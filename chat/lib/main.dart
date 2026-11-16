@@ -1,4 +1,4 @@
-import 'package:chat/auth/login_or_register.dart';
+import 'package:chat/auth/auth_gate.dart';
 import 'package:chat/firebase_options.dart';
 import 'package:chat/theme/light_mode.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'ConnectChate',
       debugShowCheckedModeBanner: false,
-      home: const LoginOrRegister(),
+      home: const AuthGate(),
       theme: lightMode,
     );
   }

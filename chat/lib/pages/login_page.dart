@@ -37,6 +37,7 @@ class LoginPage extends StatelessWidget {
     try {
       await authService.signInWithEmailPassword(email, password);
     } on FirebaseAuthException catch (e) {
+      debugPrint('FirebaseAuthException [${e.code}]: ${e.message}');
       if (!context.mounted) return;
       showDialog(
         context: context,
@@ -45,6 +46,7 @@ class LoginPage extends StatelessWidget {
         ),
       );
     } catch (e) {
+      debugPrint('Login error: $e');
       if (!context.mounted) return;
       showDialog(
         context: context,

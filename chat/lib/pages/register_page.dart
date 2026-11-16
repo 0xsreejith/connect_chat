@@ -1,6 +1,8 @@
+import 'package:chat/auth/auth_service.dart';
 import 'package:chat/components/my_button.dart';
 import 'package:chat/components/my_textfield.dart';
 import 'package:chat/pages/login_page.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:material_ui/material_ui.dart';
 
 class RegisterPage extends StatelessWidget {
@@ -18,16 +20,17 @@ class RegisterPage extends StatelessWidget {
       TextEditingController();
 
   // Register method
-  void register(BuildContext context) {
+  void register(BuildContext context) async {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
     final confirmPassword = _confirmPasswordController.text;
 
     // Validate empty fields
     if (email.isEmpty || password.isEmpty || confirmPassword.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Please fill in all fields"),
+      showDialog(
+        context: context,
+        builder: (context) => const AlertDialog(
+          title: Text("Please fill in all fields"),
         ),
       );
       return;
@@ -35,15 +38,38 @@ class RegisterPage extends StatelessWidget {
 
     // Validate password match
     if (password != confirmPassword) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Passwords do not match!"),
+      showDialog(
+        context: context,
+        builder: (context) => const AlertDialog(
+          title: Text("Passwords do not match!"),
         ),
       );
       return;
     }
 
-    // TODO: Connect with your AuthService
+    final authService = AuthService();
+
+    try {
+      await authService.signUpWithEmailPassword(email, password);
+    } on FirebaseAuthException catch (e) {
+      debugPrint('FirebaseAuthException [${e.code}]: ${e.message}');
+      if (!context.mounted) return;
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(AuthService.getErrorMessage(e)),
+        ),
+      );
+    } catch (e) {
+      debugPrint('Register error: $e');
+      if (!context.mounted) return;
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(e.toString()),
+        ),
+      );
+    }
   }
 
   @override
