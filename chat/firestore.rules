@@ -35,14 +35,7 @@ service cloud.firestore {
     match /Users/{userId} {
       allow read: if signedIn();
       allow create, update: if signedIn()
-        && request.auth.uid == userId
-        && request.resource.data.keys().hasOnly(['uid', 'email', 'displayName', 'fcmToken'])
-        && request.resource.data.uid == userId
-        && request.resource.data.email == request.auth.token.email
-        && (request.resource.data.displayName == null
-          || request.resource.data.displayName is string)
-        && (request.resource.data.fcmToken == null
-          || request.resource.data.fcmToken is string);
+        && request.auth.uid == userId;
       allow delete: if signedIn() && request.auth.uid == userId;
 
       match /blocked_users/{blockedId} {

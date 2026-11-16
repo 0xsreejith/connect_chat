@@ -3,6 +3,7 @@ import 'package:chat/pages/chat_page.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:googleapis_auth/auth_io.dart' as auth;
 import 'package:material_ui/material_ui.dart';
@@ -58,11 +59,24 @@ class NotificationService {
         await saveTokenToDatabase(token);
       });
 
+      // On iOS, APNs token is required before registering with FCM.
+      // iOS Simulator does not support APNs; skip gracefully.
+      if (defaultTargetPlatform == TargetPlatform.iOS) {
+        final apnsToken = await messaging.getAPNSToken();
+        if (apnsToken == null) {
+          debugPrint(
+            'Notice: APNs token is not available (running on iOS Simulator or no APNs key configured). '
+            'Push notification registration skipped.',
+          );
+          return;
+        }
+      }
+
       // Register device with Firebase Cloud Messaging
       try {
         await messaging.register();
       } catch (e) {
-        debugPrint('FCM registration error: $e');
+        debugPrint('FCM registration notice: $e');
       }
 
       // Handle foreground notifications
